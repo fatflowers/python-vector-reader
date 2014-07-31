@@ -296,7 +296,8 @@ class StrictRedis(object):
             'BITCOUNT BITPOS DECRBY DEL GETBIT HDEL HLEN INCRBY LINSERT LLEN '
             'LPUSHX PFADD PFCOUNT RPUSHX SADD SCARD SDIFFSTORE SETBIT '
             'SETRANGE SINTERSTORE SREM STRLEN SUNIONSTORE ZADD ZCARD '
-            'ZLEXCOUNT ZREM ZREMRANGEBYLEX ZREMRANGEBYRANK ZREMRANGEBYSCORE',
+            'ZLEXCOUNT ZREM ZREMRANGEBYLEX ZREMRANGEBYRANK ZREMRANGEBYSCORE'
+            'VADD VREM VREMRANGE VCARD VCOUNT',# @sunlei 2014.07.31
             int
         ),
         string_keys_to_dict('INCRBYFLOAT HINCRBYFLOAT', float),
@@ -1938,6 +1939,32 @@ class StrictRedis(object):
         with Lua scripts.
         """
         return Script(self, script)
+
+    """
+    Added by @sunlei 2014.07.31
+    """
+    def vadd(self, name, *args):
+        pieces = []
+        if args and len(args) % 2 != 0:
+            raise RedisError("VADD requires an equal number of "
+                                 "ids and flags")
+            pieces.extend(args)
+
+        return self.execute_command('VADD', name, pieces)
+
+    def vrem(self, name, *args):
+        pieces = [].extend(args)
+
+        return self.execute_command('VREM', name, pieces)
+
+    def vremrange(self, name, start, stop):
+        return self.execute_command('VREMRANGE', name, start, stop)
+
+    def vcard(self, name):
+        return self.execute_command('VCARD', name)
+
+    def vcount(self, name, min, max):
+        return self.execute_command('VCOUNT', name, min, max)
 
 
 class Redis(StrictRedis):
