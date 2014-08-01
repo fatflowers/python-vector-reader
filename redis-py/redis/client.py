@@ -315,7 +315,8 @@ class StrictRedis(object):
         ),
         string_keys_to_dict('BLPOP BRPOP', lambda r: r and tuple(r) or None),
         string_keys_to_dict(
-            'SDIFF SINTER SMEMBERS SUNION',
+            'SDIFF SINTER SMEMBERS SUNION'
+            'VRANGE VMERGE',# @sunlei 2014 2014.08.01
             lambda r: r and set(r) or set()
         ),
         string_keys_to_dict(
@@ -1944,18 +1945,12 @@ class StrictRedis(object):
     Added by @sunlei 2014.07.31
     """
     def vadd(self, name, *args):
-        pieces = []
-        if args and len(args) % 2 != 0:
-            raise RedisError("VADD requires an equal number of "
-                                 "ids and flags")
-            pieces.extend(args)
 
-        return self.execute_command('VADD', name, pieces)
+        return self.execute_command('VADD', name, *args)
 
     def vrem(self, name, *args):
-        pieces = [].extend(args)
 
-        return self.execute_command('VREM', name, pieces)
+        return self.execute_command('VREM', name, *args)
 
     def vremrange(self, name, start, stop):
         return self.execute_command('VREMRANGE', name, start, stop)
@@ -1965,6 +1960,16 @@ class StrictRedis(object):
 
     def vcount(self, name, min, max):
         return self.execute_command('VCOUNT', name, min, max)
+
+    def vrange(self, name, uid, filter, start, stop):
+        return self.execute_command('VRANGE', name, uid, filter, start, stop)
+
+    def vmerge(self, *args):
+        if len(args) < 6:
+            raise RedisError("wrong number of arguments for VMERGE command"
+                                 "ids and flags")
+
+        return self.execute_command('VMERGE', *args)
 
 
 class Redis(StrictRedis):
