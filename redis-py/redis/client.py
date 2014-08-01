@@ -361,7 +361,7 @@ class StrictRedis(object):
             'SSCAN': parse_scan,
             'TIME': lambda x: (int(x[0]), int(x[1])),
             'ZSCAN': parse_zscan
-        }
+        },
     )
 
     @classmethod
@@ -1944,30 +1944,29 @@ class StrictRedis(object):
     """
     Added by @sunlei 2014.07.31
     """
-    def vadd(self, name, *args):
+    def vadd(self, key, *args):
 
-        return self.execute_command('VADD', name, *args)
+        return self.execute_command('VADD', key, *args)
 
-    def vrem(self, name, *args):
+    def vrem(self, key, *args):
 
-        return self.execute_command('VREM', name, *args)
+        return self.execute_command('VREM', key, *args)
 
-    def vremrange(self, name, start, stop):
-        return self.execute_command('VREMRANGE', name, start, stop)
+    def vremrange(self, key, start, stop):
+        return self.execute_command('VREMRANGE', key, start, stop)
 
-    def vcard(self, name):
-        return self.execute_command('VCARD', name)
+    def vcard(self, key):
+        return self.execute_command('VCARD', key)
 
-    def vcount(self, name, min, max):
-        return self.execute_command('VCOUNT', name, min, max)
+    def vcount(self, key, min_id, max_id):
+        return self.execute_command('VCOUNT', key, min_id, max_id)
 
-    def vrange(self, name, uid, filter, start, stop):
-        return self.execute_command('VRANGE', name, uid, filter, start, stop)
+    def vrange(self, key, visit_uid, filter, start_id, stop_id):
+        return self.execute_command('VRANGE', key, visit_uid, filter, start_id, stop_id)
 
     def vmerge(self, *args):
         if len(args) < 6:
-            raise RedisError("wrong number of arguments for VMERGE command"
-                                 "ids and flags")
+            raise RedisError("wrong number of arguments for VMERGE command")
 
         return self.execute_command('VMERGE', *args)
 
