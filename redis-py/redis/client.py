@@ -296,7 +296,8 @@ class StrictRedis(object):
             'BITCOUNT BITPOS DECRBY DEL GETBIT HDEL HLEN INCRBY LINSERT LLEN '
             'LPUSHX PFADD PFCOUNT RPUSHX SADD SCARD SDIFFSTORE SETBIT '
             'SETRANGE SINTERSTORE SREM STRLEN SUNIONSTORE ZADD ZCARD '
-            'ZLEXCOUNT ZREM ZREMRANGEBYLEX ZREMRANGEBYRANK ZREMRANGEBYSCORE',
+            'ZLEXCOUNT ZREM ZREMRANGEBYLEX ZREMRANGEBYRANK ZREMRANGEBYSCORE'
+            'VADD VREM VREMRANGE VCARD VCOUNT',# @sunlei 2014.07.31
             int
         ),
         string_keys_to_dict('INCRBYFLOAT HINCRBYFLOAT', float),
@@ -314,7 +315,8 @@ class StrictRedis(object):
         ),
         string_keys_to_dict('BLPOP BRPOP', lambda r: r and tuple(r) or None),
         string_keys_to_dict(
-            'SDIFF SINTER SMEMBERS SUNION',
+            'SDIFF SINTER SMEMBERS SUNION'
+            'VRANGE VMERGE',# @sunlei 2014 2014.08.01
             lambda r: r and set(r) or set()
         ),
         string_keys_to_dict(
@@ -359,7 +361,7 @@ class StrictRedis(object):
             'SSCAN': parse_scan,
             'TIME': lambda x: (int(x[0]), int(x[1])),
             'ZSCAN': parse_zscan
-        }
+        },
     )
 
     @classmethod
@@ -1938,6 +1940,35 @@ class StrictRedis(object):
         with Lua scripts.
         """
         return Script(self, script)
+
+    """
+    Added by @sunlei 2014.07.31
+    """
+    def vadd(self, key, *args):
+
+        return self.execute_command('VADD', key, *args)
+
+    def vrem(self, key, *args):
+
+        return self.execute_command('VREM', key, *args)
+
+    def vremrange(self, key, start, stop):
+        return self.execute_command('VREMRANGE', key, start, stop)
+
+    def vcard(self, key):
+        return self.execute_command('VCARD', key)
+
+    def vcount(self, key, min_id, max_id):
+        return self.execute_command('VCOUNT', key, min_id, max_id)
+
+    def vrange(self, key, visit_uid, filter, start_id, stop_id):
+        return self.execute_command('VRANGE', key, visit_uid, filter, start_id, stop_id)
+
+    def vmerge(self, *args):
+        if len(args) < 6:
+            raise RedisError("wrong number of arguments for VMERGE command")
+
+        return self.execute_command('VMERGE', *args)
 
 
 class Redis(StrictRedis):
