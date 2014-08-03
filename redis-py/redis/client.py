@@ -276,6 +276,14 @@ def parse_slowlog_get(response, **options):
     } for item in response]
 
 
+def parse_config_schema(response, **options):
+    #config schema have 6 sub-commands, get and show will return list @sunlei 2014.08.01
+    if(isinstance(response, list)):
+        response = [nativestr(i) if i is not None else None for i in response]
+        return response
+    else:
+        return nativestr(response)
+
 class StrictRedis(object):
     """
     Implementation of the Redis protocol.
@@ -315,9 +323,13 @@ class StrictRedis(object):
         ),
         string_keys_to_dict('BLPOP BRPOP', lambda r: r and tuple(r) or None),
         string_keys_to_dict(
-            'SDIFF SINTER SMEMBERS SUNION'
-            'VRANGE VMERGE',# @sunlei 2014 2014.08.01
+            'SDIFF SINTER SMEMBERS SUNION',
             lambda r: r and set(r) or set()
+        ),
+        # @sunlei 2014 2014.08.01
+        string_keys_to_dict(
+              'VRANGE VMERGE',
+              lambda r: r and list(r) or list()
         ),
         string_keys_to_dict(
             'ZRANGE ZRANGEBYSCORE ZREVRANGE ZREVRANGEBYSCORE',
@@ -333,6 +345,9 @@ class StrictRedis(object):
             'CONFIG GET': parse_config_get,
             'CONFIG RESETSTAT': bool_ok,
             'CONFIG SET': bool_ok,
+            # @sunlei 2014.08.01
+            'CONFIG SCHEMA': parse_config_schema,
+            'CONFIG COLUMN':lambda r: r and nativestr(r),
             'DEBUG OBJECT': parse_debug_object,
             'HGETALL': lambda r: r and pairs_to_dict(r) or {},
             'HSCAN': parse_hscan,
@@ -361,7 +376,7 @@ class StrictRedis(object):
             'SSCAN': parse_scan,
             'TIME': lambda x: (int(x[0]), int(x[1])),
             'ZSCAN': parse_zscan
-        },
+        }
     )
 
     @classmethod
@@ -1945,10 +1960,14 @@ class StrictRedis(object):
     Added by @sunlei 2014.07.31
     """
     def vadd(self, key, *args):
+        if len(args) < 2:
+            raise RedisError("wrong number of arguments for VADD command")
 
         return self.execute_command('VADD', key, *args)
 
     def vrem(self, key, *args):
+        if len(args) < 1:
+            raise RedisError("wrong number of arguments for VREM command")
 
         return self.execute_command('VREM', key, *args)
 
@@ -1958,8 +1977,8 @@ class StrictRedis(object):
     def vcard(self, key):
         return self.execute_command('VCARD', key)
 
-    def vcount(self, key, min_id, max_id):
-        return self.execute_command('VCOUNT', key, min_id, max_id)
+    def vcount(self, key, start_id, stop_id):
+        return self.execute_command('VCOUNT', key, start_id, stop_id)
 
     def vrange(self, key, visit_uid, filter, start_id, stop_id):
         return self.execute_command('VRANGE', key, visit_uid, filter, start_id, stop_id)
@@ -1969,6 +1988,19 @@ class StrictRedis(object):
             raise RedisError("wrong number of arguments for VMERGE command")
 
         return self.execute_command('VMERGE', *args)
+
+    def config_schema(self, *args):
+        #besides'config' and 'schema' the rest argument should in region [1,4]
+        if len(args) < 1 or len(args) > 4:
+            raise RedisError("wrong number of arguments for CONFIG SCHEMA command")
+
+        return self.execute_command('CONFIG SCHEMA', *args)
+
+    def config_column(self, *args):
+        if len(args) < 3 or len(args) > 4:
+            raise RedisError("wrong number of arguments for CONFIG COLUMN command")
+
+        return self.execute_command('CONFIG COLUMN', *args)
 
 
 class Redis(StrictRedis):
