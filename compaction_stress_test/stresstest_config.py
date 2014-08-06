@@ -35,6 +35,8 @@ class config():
     #time unit is second
     sleep_before_reading = 5
 
+    #log file name
+    log_file = 'stress_test_commands.log'
 
 
 

@@ -18,7 +18,7 @@ id_metas = set()
 #lock keys and id_metas between read and write thread
 keylock = threading.RLock()
 #log module
-logging.basicConfig(filename='stress_test.log', format='%(asctime)s - %(threadName)s- %(funcName)s: %(message)s')
+logging.basicConfig(filename=stresstest_config.config.log_file, format='%(asctime)s - %(threadName)s- %(funcName)s: %(message)s')
 logger = logging.getLogger('stress_test')
 logger.setLevel(logging.INFO)
 
