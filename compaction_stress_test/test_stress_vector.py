@@ -5,6 +5,7 @@ import threading
 import random
 import stresstest_config
 import logging
+import time
 
 #list of schema {name(string):[(columnname,columnlen)]}
 schemas = dict()
@@ -16,7 +17,7 @@ keys = dict()
 id_metas = set()
 keylock = threading.RLock()
 #log module
-logging.basicConfig(filename='log.txt', format='%(asctime)s - %(funcName)s: %(message)s')
+logging.basicConfig(filename='stress_test.log', format='%(asctime)s - %(threadName)s- %(funcName)s: %(message)s')
 logger = logging.getLogger('stress_test')
 logger.setLevel(logging.INFO)
 
@@ -26,26 +27,28 @@ def get_schema():
 
 
 def get_id_metaid():
-    return random.randrange(stresstest_config.id_metarange[0], stresstest_config.id_metarange[0] + stresstest_config.id_metarange[1])
-
+    return random.randrange(stresstest_config.config.id_metarange[0], stresstest_config.config.id_metarange[0] + stresstest_config.config.id_metarange[1])
 
 def get_key():
-    return random.randrange(stresstest_config.keyrange[0], stresstest_config.keyrange[0] + stresstest_config.keyrange[1])
-
+    return random.randrange(stresstest_config.config.keyrange[0], stresstest_config.config.keyrange[0] + stresstest_config.config.keyrange[1])
 
 
 class read_vector(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.rediscli1 = redis.Redis(host=stresstest_config.host1, port=stresstest_config.port1, db=0)
-        self.rediscli2 = redis.Redis(host=stresstest_config.host2, port=stresstest_config.port2, db=0)
+    def __init__(self, thread_name):
+        threading.Thread.__init__(self, name=thread_name)
+        self.rediscli1 = redis.Redis(host=stresstest_config.config.host1, port=stresstest_config.config.port1, db=0)
+        self.rediscli2 = redis.Redis(host=stresstest_config.config.host2, port=stresstest_config.config.port2, db=0)
         self.__doc__ = 'for vrange vmerge vcount vcard'
 
     def vrange(self):
         keylock.acquire()
 
+        #avoid nothing to remove
+        if len(keys) == 0 or len(id_metas) == 0:
+            return
+
         key = random.choice(list(keys))
-        key = str(key) + '.' + str(keys[key])
+        key = str(key) + '.' + str(random.choice((keys[key])))
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
         if start_id >= stop_id:
@@ -56,12 +59,16 @@ class read_vector(threading.Thread):
             filter_ = 0
             self.rediscli1.vrange(key, key, filter_, start_id, stop_id)
             self.rediscli2.vrange(key, key, filter_, start_id, stop_id)
-            logger.info(key + ' ' + key + ' ' + str(filter_) + ' %s %s', str(start_id), str(stop_id))
+            logger.info('%s %s %s %s %s', *(key, key, str(filter_), str(start_id), str(stop_id)))
         except Exception as err:
             logger.debug(err)
 
     def vmerge(self):
         keylock.acquire()
+
+        #avoid nothing to remove
+        if len(keys) == 0 or len(id_metas) == 0:
+            return
 
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
@@ -71,7 +78,7 @@ class read_vector(threading.Thread):
         #select random keys to merge
         for i in range(0, random.randrange(1, len(keys))):
             tmpkey = random.choice(list(keys))
-            tmpkey = str(tmpkey) + '.' + str(keys[tmpkey])
+            tmpkey = str(tmpkey) + '.' + str(random.choice((keys[tmpkey])))
             key.add(tmpkey)
         keylock.release()
         try:
@@ -80,15 +87,49 @@ class read_vector(threading.Thread):
             arg.extend([filter_, 100, start_id, stop_id])
             self.rediscli1.vmerge(*arg)
             self.rediscli2.vmerge(*arg)
-            logger.info('%s %s %s %s %s', str(arg), str(filter), str(100), str(start_id), str(stop_id))
+            logger.info(str(arg)[1:-1].replace(',', ' '))
         except Exception as err:
             logger.debug(err)
 
     def vcount(self):
-        pass
+        keylock.acquire()
+
+        #avoid nothing to remove
+        if len(keys) == 0 or len(id_metas) == 0:
+            return
+
+        start_id = random.choice(list(id_metas))
+        stop_id = random.choice(list(id_metas))
+        if start_id >= stop_id:
+            return
+        key = random.choice(list(keys))
+        key = str(key) + '.' + str(random.choice((keys[key])))
+
+        keylock.release()
+        try:
+            self.rediscli1.vcount(key, start_id, stop_id)
+            self.rediscli2.vcount(key, start_id, stop_id)
+            logger.info('%s %s %s', *(key, str(start_id), str(stop_id)))
+        except Exception as err:
+            logger.debug(err)
 
     def vcard(self):
-        pass
+        keylock.acquire()
+
+        #avoid nothing to remove
+        if len(keys) == 0 or len(id_metas) == 0:
+            return
+
+        key = random.choice(list(keys))
+        key = str(key) + '.' + str(random.choice((keys[key])))
+
+        keylock.release()
+        try:
+            self.rediscli1.vcard(key)
+            self.rediscli2.vcard(key)
+            logger.info(key)
+        except Exception as err:
+            logger.debug(err)
 
     def run(self):
         vrangerate = 10.0 / 22.0
@@ -106,10 +147,10 @@ class read_vector(threading.Thread):
                 self.vcard()
 
 class write_vector(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.rediscli1 = redis.Redis(host=stresstest_config.host1, port=stresstest_config.port1, db=0)
-        self.rediscli2 = redis.Redis(host=stresstest_config.host2, port=stresstest_config.port2, db=0)
+    def __init__(self, thread_name):
+        threading.Thread.__init__(self, name=thread_name)
+        self.rediscli1 = redis.Redis(host=stresstest_config.config.host1, port=stresstest_config.config.port1, db=0)
+        self.rediscli2 = redis.Redis(host=stresstest_config.config.host2, port=stresstest_config.config.port2, db=0)
         self.__doc__ = 'for vadd vrem vremrange'
         self.functionNumber = 1
 
@@ -138,32 +179,38 @@ class write_vector(threading.Thread):
             cols = [random.randrange(0, 1 << columns[i][1]) for i in schemas[schema]]
             self.rediscli1.vadd(str(key)+'.'+schema, id_meta_id, *cols)
             self.rediscli2.vadd(str(key)+'.'+schema, id_meta_id, *cols)
-            logger.info('%s.%s %s %s', *(str(key), str(schema), str(id_meta_id), str(cols)))
+            logger.info('%s.%s %s %s', *(str(key), str(schema), str(id_meta_id), str(cols)[1:-1].replace(',', ' ')))
         except Exception as err:
             logger.debug(err)
 
     def vrem(self):
         keylock.acquire()
+        #avoid nothing to remove
+        if len(keys) == 0 or len(id_metas) == 0:
+            return
 
         key = random.choice(list(keys))
-        key = str(key) + '.' + str(keys[key])
+        key = str(key) + '.' + str(random.choice((keys[key])))
         ids = set()
         for i in range(0, len(id_metas)):
             ids.add(random.choice(list(id_metas)))
-
+        ids = list(ids)
         keylock.release()
         try:
             self.rediscli1.vrem(key, *ids)
             self.rediscli2.vrem(key, *ids)
-            logger.info(key + ' %s', str(ids))
+            logger.info(key + ' %s', str(ids)[1:-1].replace(',', ' '))
         except Exception as err:
             logger.debug(err)
 
     def vremrange(self):
         keylock.acquire()
+        #avoid nothing to remove
+        if len(keys) == 0 or len(id_metas) == 0:
+            return
 
         key = random.choice(list(keys))
-        key = str(key) + '.' + str(keys[key])
+        key = str(key) + '.' + str(random.choice((keys[key])))
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
         if start_id >= stop_id:
@@ -194,13 +241,16 @@ class write_vector(threading.Thread):
 
 class stress_test_vector(object):
     def __init__(self):
-        self.rediscli1 = redis.Redis(host=stresstest_config.host1, port=stresstest_config.port1, db=0)
-        self.rediscli2 = redis.Redis(host=stresstest_config.host2, port=stresstest_config.port2, db=0)
+        self.rediscli1 = redis.Redis(host=stresstest_config.config.host1, port=stresstest_config.config.port1, db=0)
+        self.rediscli2 = redis.Redis(host=stresstest_config.config.host2, port=stresstest_config.config.port2, db=0)
+
+    def __del__(self):
+        logging.shutdown()
 
     def initschema(self):
         self.initcolumn()
 
-        for i in range(0, stresstest_config.schemarange):
+        for i in range(0, stresstest_config.config.schemarange):
             schema = 's' + str(i)
             try:
                 self.rediscli1.config_schema('add', schema)
@@ -211,7 +261,7 @@ class stress_test_vector(object):
                 logger.debug(err)
 
             #add columns into current schema in order
-            for j in range(0, stresstest_config.columnrange):
+            for j in range(0, stresstest_config.config.columnrange):
                 schemas[schema].append(j)
                 try:
                     self.rediscli1.config_column('add', schema, columns[j][0], columns[j][1])
@@ -221,22 +271,26 @@ class stress_test_vector(object):
                     logger.debug(err)
 
     def initcolumn(self):
-        for i in range(0, stresstest_config.columnrange):
-            if stresstest_config.columnrange != 4:
+        for i in range(0, stresstest_config.config.columnrange):
+            if stresstest_config.config.columnrange != 4:
                 columns.append(('c' + str(i), random.choice([1, 2, 4, 8])))
             else:
                 columns.append(('c' + str(i), [1, 2, 4, 8][i]))
 
     def run(self):
-        readers = []
         writers = []
-        for i in range(0, stresstest_config.nreadThread):
-            readers.append(read_vector())
-            readers[i].start()
+        readers = []
 
-        for i in range(0, stresstest_config.nwriteThread):
-            writers.append(write_vector())
+        for i in range(0, stresstest_config.config.nwriteThread):
+            writers.append(write_vector('write_thread_' + str(i)))
             writers[i].start()
+
+        #sleep for 10s, avoid nothing to read
+        #time.sleep(10)
+
+        for i in range(0, stresstest_config.config.nreadThread):
+            readers.append(read_vector('read_thread_' + str(i)))
+            readers[i].start()
 
 
 
