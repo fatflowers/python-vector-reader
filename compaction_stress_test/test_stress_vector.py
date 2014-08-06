@@ -53,14 +53,36 @@ class read_vector(threading.Thread):
 
         keylock.release()
         try:
-            self.rediscli1.vrange(key, key, 0, start_id, stop_id)
-            self.rediscli2.vrange(key, key, 0, start_id, stop_id)
-            logger.info(key + key + '0 %s %s', str(start_id), str(stop_id))
+            filter_ = 0
+            self.rediscli1.vrange(key, key, filter_, start_id, stop_id)
+            self.rediscli2.vrange(key, key, filter_, start_id, stop_id)
+            logger.info(key + ' ' + key + ' ' + str(filter_) + ' %s %s', str(start_id), str(stop_id))
         except Exception as err:
             logger.debug(err)
 
     def vmerge(self):
-        pass
+        keylock.acquire()
+
+        start_id = random.choice(list(id_metas))
+        stop_id = random.choice(list(id_metas))
+        if start_id >= stop_id:
+            return
+        key = set()
+        #select random keys to merge
+        for i in range(0, random.randrange(1, len(keys))):
+            tmpkey = random.choice(list(keys))
+            tmpkey = str(tmpkey) + '.' + str(keys[tmpkey])
+            key.add(tmpkey)
+        keylock.release()
+        try:
+            filter_ = 0
+            arg = list(key)
+            arg.extend([filter_, 100, start_id, stop_id])
+            self.rediscli1.vmerge(*arg)
+            self.rediscli2.vmerge(*arg)
+            logger.info('%s %s %s %s %s', str(arg), str(filter), str(100), str(start_id), str(stop_id))
+        except Exception as err:
+            logger.debug(err)
 
     def vcount(self):
         pass
@@ -69,9 +91,19 @@ class read_vector(threading.Thread):
         pass
 
     def run(self):
-        pass
-
-
+        vrangerate = 10.0 / 22.0
+        vmergerate = 20.0 / 22.0
+        vcountrate = 21.0 / 22.0
+        while True:
+            rand = random.random()
+            if rand < vrangerate:
+                self.vrange()
+            elif rand < vmergerate:
+                self.vmerge()
+            elif rand < vcountrate:
+                self.vcount()
+            else:
+                self.vcard()
 
 class write_vector(threading.Thread):
     def __init__(self):
@@ -123,7 +155,7 @@ class write_vector(threading.Thread):
         try:
             self.rediscli1.vrem(key, *ids)
             self.rediscli2.vrem(key, *ids)
-            logger.info(key + '%s', str(ids))
+            logger.info(key + ' %s', str(ids))
         except Exception as err:
             logger.debug(err)
 
@@ -141,21 +173,23 @@ class write_vector(threading.Thread):
 
         try:
             self.rediscli1.vremrange(key, start_id, stop_id)
-            logger.info(key + '%s %s', str(start_id), str(stop_id))
+            self.rediscli2.vremrange(key, start_id, stop_id)
+            logger.info(key + ' %s %s', str(start_id), str(stop_id))
         except Exception as err:
             logger.debug(err)
 
-
     def run(self):
-        while(True):
+        #add/rem = 10/1
+        vaddrate = 20.0 / 22.0
+        vremrate = 21.0 / 22.0
+        while True:
             rand = random.random()
-            if rand < 1/3:
+            if rand < vaddrate:
                 self.vadd()
-            elif rand < 2/3:
-                self.vremrange()
-            else:
+            elif rand < vremrate:
                 self.vrem()
-
+            else:
+                self.vremrange()
 
 
 class stress_test_vector(object):
@@ -194,21 +228,15 @@ class stress_test_vector(object):
                 columns.append(('c' + str(i), [1, 2, 4, 8][i]))
 
     def run(self):
-        readers1 = []
-        writers1 = []
-        readers2 = []
-        writers2 = []
+        readers = []
+        writers = []
         for i in range(0, stresstest_config.nreadThread):
-            readers1.append(read_vector())
-            readers2.append(read_vector())
-            readers1[i].start()
-            readers2[i].start()
+            readers.append(read_vector())
+            readers[i].start()
 
         for i in range(0, stresstest_config.nwriteThread):
-            writers1.append(write_vector())
-            writers2.append(write_vector())
-            writers1[i].start()
-            writers2[i].start()
+            writers.append(write_vector())
+            writers[i].start()
 
 
 
