@@ -1,5 +1,5 @@
 __author__ = 'sunlei 2014.08.04'
-__doc__ = 'global config of stress test vector'
+__doc__ = 'Global config of stress test vector'
 
 
 class config():

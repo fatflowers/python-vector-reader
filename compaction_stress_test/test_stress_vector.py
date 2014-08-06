@@ -1,5 +1,15 @@
 __author__ = 'sunlei 2014.08.04'
+'''
+Functions and classes in this file read config from stresstest_config.py.
 
+stress_test_vector is in the main thread, it configs schemas and columns and creates threads
+for class read_vector and write_vector.
+
+read_vector execute vrange vmerge vcount vcard of vector service of redis at a rate.
+
+write_vector execute vadd vrem vremrange at a rate.
+
+'''
 import redis
 import threading
 import random
