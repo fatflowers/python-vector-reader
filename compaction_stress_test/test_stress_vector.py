@@ -7,14 +7,15 @@ import stresstest_config
 import logging
 import time
 
-#list of schema {name(string):[(columnname,columnlen)]}
+# list of schema {name(string):[(columnname,columnlen)]}
 schemas = dict()
 #each item is [(columnname(string), columnlen(number))]
 columns = list()
 #{key: [schema]}
 keys = dict()
-#it's a set
+#it's a set, avoid duplication
 id_metas = set()
+#lock keys and id_metas between read and write thread
 keylock = threading.RLock()
 #log module
 logging.basicConfig(filename='stress_test.log', format='%(asctime)s - %(threadName)s- %(funcName)s: %(message)s')
@@ -27,10 +28,13 @@ def get_schema():
 
 
 def get_id_metaid():
-    return random.randrange(stresstest_config.config.id_metarange[0], stresstest_config.config.id_metarange[0] + stresstest_config.config.id_metarange[1])
+    return random.randrange(stresstest_config.config.id_metarange[0],
+                            stresstest_config.config.id_metarange[0] + stresstest_config.config.id_metarange[1])
+
 
 def get_key():
-    return random.randrange(stresstest_config.config.keyrange[0], stresstest_config.config.keyrange[0] + stresstest_config.config.keyrange[1])
+    return random.randrange(stresstest_config.config.keyrange[0],
+                            stresstest_config.config.keyrange[0] + stresstest_config.config.keyrange[1])
 
 
 class read_vector(threading.Thread):
@@ -59,7 +63,8 @@ class read_vector(threading.Thread):
             filter_ = 0
             self.rediscli1.vrange(key, key, filter_, start_id, stop_id)
             self.rediscli2.vrange(key, key, filter_, start_id, stop_id)
-            logger.info('%s %s %s %s %s', *(key, key, str(filter_), str(start_id), str(stop_id)))
+            if stresstest_config.config.enable_log:
+                logger.info('%s %s %s %s %s', *(key, key, str(filter_), str(start_id), str(stop_id)))
         except Exception as err:
             logger.debug(err)
 
@@ -87,7 +92,8 @@ class read_vector(threading.Thread):
             arg.extend([filter_, 100, start_id, stop_id])
             self.rediscli1.vmerge(*arg)
             self.rediscli2.vmerge(*arg)
-            logger.info(str(arg)[1:-1].replace(',', ' '))
+            if stresstest_config.config.enable_log:
+                logger.info(str(arg)[1:-1].replace(',', ' '))
         except Exception as err:
             logger.debug(err)
 
@@ -109,7 +115,8 @@ class read_vector(threading.Thread):
         try:
             self.rediscli1.vcount(key, start_id, stop_id)
             self.rediscli2.vcount(key, start_id, stop_id)
-            logger.info('%s %s %s', *(key, str(start_id), str(stop_id)))
+            if stresstest_config.config.enable_log:
+                logger.info('%s %s %s', *(key, str(start_id), str(stop_id)))
         except Exception as err:
             logger.debug(err)
 
@@ -132,6 +139,7 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def run(self):
+        #execution rate:(vrange+vmerge)/(vcount+vcard) = 10/1
         vrangerate = 10.0 / 22.0
         vmergerate = 20.0 / 22.0
         vcountrate = 21.0 / 22.0
@@ -145,6 +153,7 @@ class read_vector(threading.Thread):
                 self.vcount()
             else:
                 self.vcard()
+
 
 class write_vector(threading.Thread):
     def __init__(self, thread_name):
@@ -177,9 +186,10 @@ class write_vector(threading.Thread):
         try:
             id_meta_id = get_id_metaid()
             cols = [random.randrange(0, 1 << columns[i][1]) for i in schemas[schema]]
-            self.rediscli1.vadd(str(key)+'.'+schema, id_meta_id, *cols)
-            self.rediscli2.vadd(str(key)+'.'+schema, id_meta_id, *cols)
-            logger.info('%s.%s %s %s', *(str(key), str(schema), str(id_meta_id), str(cols)[1:-1].replace(',', ' ')))
+            self.rediscli1.vadd(str(key) + '.' + schema, id_meta_id, *cols)
+            self.rediscli2.vadd(str(key) + '.' + schema, id_meta_id, *cols)
+            if stresstest_config.config.enable_log:
+                logger.info('%s.%s %s %s', *(str(key), str(schema), str(id_meta_id), str(cols)[1:-1].replace(',', ' ')))
         except Exception as err:
             logger.debug(err)
 
@@ -199,7 +209,8 @@ class write_vector(threading.Thread):
         try:
             self.rediscli1.vrem(key, *ids)
             self.rediscli2.vrem(key, *ids)
-            logger.info(key + ' %s', str(ids)[1:-1].replace(',', ' '))
+            if stresstest_config.config.enable_log:
+                logger.info(key + ' %s', str(ids)[1:-1].replace(',', ' '))
         except Exception as err:
             logger.debug(err)
 
@@ -221,12 +232,13 @@ class write_vector(threading.Thread):
         try:
             self.rediscli1.vremrange(key, start_id, stop_id)
             self.rediscli2.vremrange(key, start_id, stop_id)
-            logger.info(key + ' %s %s', str(start_id), str(stop_id))
+            if stresstest_config.config.enable_log:
+                logger.info(key + ' %s %s', str(start_id), str(stop_id))
         except Exception as err:
             logger.debug(err)
 
     def run(self):
-        #add/rem = 10/1
+        #command execution rate: add/rem = 10/1
         vaddrate = 20.0 / 22.0
         vremrate = 21.0 / 22.0
         while True:
@@ -256,7 +268,8 @@ class stress_test_vector(object):
                 self.rediscli1.config_schema('add', schema)
                 self.rediscli2.config_schema('add', schema)
                 schemas.update({schema: []})
-                logger.info('config schema add %s', str(schema))
+                if stresstest_config.config.enable_log:
+                    logger.info('config schema add %s', str(schema))
             except Exception as err:
                 logger.debug(err)
 
@@ -266,7 +279,8 @@ class stress_test_vector(object):
                 try:
                     self.rediscli1.config_column('add', schema, columns[j][0], columns[j][1])
                     self.rediscli2.config_column('add', schema, columns[j][0], columns[j][1])
-                    logger.info('config column add %s %s %s', *(str(schema), columns[j][0], str(columns[j][1])))
+                    if stresstest_config.config.enable_log:
+                        logger.info('config column add %s %s %s', *(str(schema), columns[j][0], str(columns[j][1])))
                 except Exception as err:
                     logger.debug(err)
 
@@ -278,6 +292,7 @@ class stress_test_vector(object):
                 columns.append(('c' + str(i), [1, 2, 4, 8][i]))
 
     def run(self):
+        self.initschema()
         writers = []
         readers = []
 
@@ -285,17 +300,15 @@ class stress_test_vector(object):
             writers.append(write_vector('write_thread_' + str(i)))
             writers[i].start()
 
-        #sleep for 10s, avoid nothing to read
-        #time.sleep(10)
+        #sleep for some time, avoid nothing to read
+        time.sleep(stresstest_config.config.sleep_before_reading)
 
         for i in range(0, stresstest_config.config.nreadThread):
             readers.append(read_vector('read_thread_' + str(i)))
             readers[i].start()
 
 
-
 stresstest = stress_test_vector()
-stresstest.initschema()
 stresstest.run()
 
 
