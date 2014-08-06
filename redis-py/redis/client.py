@@ -276,6 +276,14 @@ def parse_slowlog_get(response, **options):
     } for item in response]
 
 
+def parse_config_schema(response, **options):
+    #config schema have 6 sub-commands, get and show will return list @sunlei 2014.08.01
+    if(isinstance(response, list)):
+        response = [nativestr(i) if i is not None else None for i in response]
+        return response
+    else:
+        return nativestr(response)
+
 class StrictRedis(object):
     """
     Implementation of the Redis protocol.
@@ -296,7 +304,8 @@ class StrictRedis(object):
             'BITCOUNT BITPOS DECRBY DEL GETBIT HDEL HLEN INCRBY LINSERT LLEN '
             'LPUSHX PFADD PFCOUNT RPUSHX SADD SCARD SDIFFSTORE SETBIT '
             'SETRANGE SINTERSTORE SREM STRLEN SUNIONSTORE ZADD ZCARD '
-            'ZLEXCOUNT ZREM ZREMRANGEBYLEX ZREMRANGEBYRANK ZREMRANGEBYSCORE',
+            'ZLEXCOUNT ZREM ZREMRANGEBYLEX ZREMRANGEBYRANK ZREMRANGEBYSCORE'
+            'VADD VREM VREMRANGE VCARD VCOUNT',# @sunlei 2014.07.31
             int
         ),
         string_keys_to_dict('INCRBYFLOAT HINCRBYFLOAT', float),
@@ -317,6 +326,11 @@ class StrictRedis(object):
             'SDIFF SINTER SMEMBERS SUNION',
             lambda r: r and set(r) or set()
         ),
+        # @sunlei 2014 2014.08.01
+        string_keys_to_dict(
+              'VRANGE VMERGE',
+              lambda r: r and list(r) or list()
+        ),
         string_keys_to_dict(
             'ZRANGE ZRANGEBYSCORE ZREVRANGE ZREVRANGEBYSCORE',
             zset_score_pairs
@@ -331,6 +345,9 @@ class StrictRedis(object):
             'CONFIG GET': parse_config_get,
             'CONFIG RESETSTAT': bool_ok,
             'CONFIG SET': bool_ok,
+            # @sunlei 2014.08.01
+            'CONFIG SCHEMA': parse_config_schema,
+            'CONFIG COLUMN':lambda r: r and nativestr(r),
             'DEBUG OBJECT': parse_debug_object,
             'HGETALL': lambda r: r and pairs_to_dict(r) or {},
             'HSCAN': parse_hscan,
@@ -1938,6 +1955,52 @@ class StrictRedis(object):
         with Lua scripts.
         """
         return Script(self, script)
+
+    """
+    Added by @sunlei 2014.07.31
+    """
+    def vadd(self, key, *args):
+        if len(args) < 2:
+            raise RedisError("wrong number of arguments for VADD command")
+
+        return self.execute_command('VADD', key, *args)
+
+    def vrem(self, key, *args):
+        if len(args) < 1:
+            raise RedisError("wrong number of arguments for VREM command")
+
+        return self.execute_command('VREM', key, *args)
+
+    def vremrange(self, key, start, stop):
+        return self.execute_command('VREMRANGE', key, start, stop)
+
+    def vcard(self, key):
+        return self.execute_command('VCARD', key)
+
+    def vcount(self, key, start_id, stop_id):
+        return self.execute_command('VCOUNT', key, start_id, stop_id)
+
+    def vrange(self, key, visit_uid, filter, start_id, stop_id):
+        return self.execute_command('VRANGE', key, visit_uid, filter, start_id, stop_id)
+
+    def vmerge(self, *args):
+        if len(args) < 6:
+            raise RedisError("wrong number of arguments for VMERGE command")
+
+        return self.execute_command('VMERGE', *args)
+
+    def config_schema(self, *args):
+        #besides'config' and 'schema' the rest argument should in region [1,4]
+        if len(args) < 1 or len(args) > 4:
+            raise RedisError("wrong number of arguments for CONFIG SCHEMA command")
+
+        return self.execute_command('CONFIG SCHEMA', *args)
+
+    def config_column(self, *args):
+        if len(args) < 3 or len(args) > 4:
+            raise RedisError("wrong number of arguments for CONFIG COLUMN command")
+
+        return self.execute_command('CONFIG COLUMN', *args)
 
 
 class Redis(StrictRedis):
