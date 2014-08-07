@@ -59,6 +59,7 @@ class read_vector(threading.Thread):
 
         #avoid nothing to remove
         if len(keys) == 0 or len(id_metas) == 0:
+            keylock.release()
             return
 
         key = random.choice(list(keys))
@@ -66,6 +67,7 @@ class read_vector(threading.Thread):
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
         if start_id >= stop_id:
+            keylock.release()
             return
 
         keylock.release()
@@ -83,11 +85,13 @@ class read_vector(threading.Thread):
 
         #avoid nothing to remove
         if len(keys) == 0 or len(id_metas) == 0:
+            keylock.release()
             return
 
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
         if start_id >= stop_id:
+            keylock.release()
             return
         key = set()
         #select random keys to merge
@@ -112,11 +116,13 @@ class read_vector(threading.Thread):
 
         #avoid nothing to remove
         if len(keys) == 0 or len(id_metas) == 0:
+            keylock.release()
             return
 
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
         if start_id >= stop_id:
+            keylock.release()
             return
         key = random.choice(list(keys))
         key = str(key) + '.' + str(random.choice((keys[key])))
@@ -135,6 +141,7 @@ class read_vector(threading.Thread):
 
         #avoid nothing to remove
         if len(keys) == 0 or len(id_metas) == 0:
+            keylock.release()
             return
 
         key = random.choice(list(keys))
@@ -207,6 +214,7 @@ class write_vector(threading.Thread):
         keylock.acquire()
         #avoid nothing to remove
         if len(keys) == 0 or len(id_metas) == 0:
+            keylock.release()
             return
 
         key = random.choice(list(keys))
@@ -228,6 +236,7 @@ class write_vector(threading.Thread):
         keylock.acquire()
         #avoid nothing to remove
         if len(keys) == 0 or len(id_metas) == 0:
+            keylock.release()
             return
 
         key = random.choice(list(keys))
@@ -235,6 +244,7 @@ class write_vector(threading.Thread):
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
         if start_id >= stop_id:
+            keylock.release()
             return
 
         keylock.release()
