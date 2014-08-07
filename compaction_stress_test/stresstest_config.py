@@ -25,15 +25,15 @@ class config():
     host1 = '10.77.109.117'
     port1 = 6379
     host2 = '10.77.109.117'
-    port2 = 6380
+    port2 = 6666
 
     #log will record every command executed by redis
     #True if need log
-    enable_log = False
+    enable_log = True
 
     #sleep before reading, make sure there's initial data for read
     #time unit is second
-    sleep_before_reading = 5
+    sleep_before_reading = 3
 
     #log file name
     log_file = 'stress_test_commands.log'
