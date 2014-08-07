@@ -29,7 +29,7 @@ class config():
 
     #log will record every command executed by redis
     #True if need log
-    enable_log = True
+    enable_log = False
 
     #sleep before reading, make sure there's initial data for read
     #time unit is second

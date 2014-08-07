@@ -55,7 +55,6 @@ class read_vector(threading.Thread):
         self.__doc__ = 'for vrange vmerge vcount vcard'
 
     def vrange(self):
-        print("waiting for vrange")
         keylock.acquire()
 
         #avoid nothing to remove
@@ -82,7 +81,6 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def vmerge(self):
-        print("waiting for vmerge")
         keylock.acquire()
 
         #avoid nothing to remove
