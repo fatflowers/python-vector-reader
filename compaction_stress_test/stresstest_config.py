@@ -1,6 +1,8 @@
 __author__ = 'sunlei 2014.08.04'
 __doc__ = 'Global config of stress test vector'
+import os
 
+pwd = os.popen('pwd').read().strip() + '/'
 
 class config():
     #key range:(start, offset)
@@ -27,6 +29,7 @@ class config():
     host2 = '10.77.109.117'
     port2 = 6666
 
+
     #log will record every command executed by redis
     #True if need log
     enable_log = False
@@ -41,8 +44,10 @@ class config():
     #save all the schemas, columns, keys, id_metas in to file
     backup_interval = 60
     backup_filename = 'data.backup'
-    start_with_backup = True
+    start_with_backup = False
 
+    #log filename for helper process
+    helper_log_file = pwd + 'helper.log'
 
 
 
