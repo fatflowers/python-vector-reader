@@ -17,6 +17,7 @@ import stresstest_config
 import logging
 import time
 import pickle
+import sys
 
 # list of schema {name(string):[(columnname,columnlen)]}
 schemas = dict()
@@ -337,7 +338,7 @@ class stress_test_vector(object):
     def run(self):
         #if start with backup load datas from file,
         #  won't init schemas and columns
-        if stresstest_config.config.start_with_backup:
+        if stresstest_config.config.start_with_backup or len(sys.argv) == 2:
             try:
                 global schemas, columns, keys, id_metas
                 [schemas, columns, keys, id_metas] = pickle.load(open(stresstest_config.config.backup_filename, 'rb'))
