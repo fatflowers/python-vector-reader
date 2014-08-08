@@ -38,6 +38,10 @@ class config():
     #log file name
     log_file = 'stress_test_commands.log'
 
+    #save all the schemas, columns, keys, id_metas in to file
+    backup_interval = 60
+    backup_filename = 'data.backup'
+    start_with_backup = True
 
 
 
