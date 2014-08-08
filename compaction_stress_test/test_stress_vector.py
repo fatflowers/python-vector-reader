@@ -16,6 +16,7 @@ import random
 import stresstest_config
 import logging
 import time
+import pickle
 
 # list of schema {name(string):[(columnname,columnlen)]}
 schemas = dict()
@@ -45,6 +46,26 @@ def get_id_metaid():
 def get_key():
     return random.randrange(stresstest_config.config.keyrange[0],
                             stresstest_config.config.keyrange[0] + stresstest_config.config.keyrange[1])
+
+'''
+A thread pickles schemas, columns, keys, id_metas into a file
+    used to recover without init the datas
+'''
+class save_data(threading.Thread):
+    def __init__(self, thread_name):
+        threading.Thread.__init__(self, name=thread_name)
+
+    def run(self):
+        while True:
+            time.sleep(stresstest_config.config.backup_interval)
+            keylock.acquire()
+            try:
+                pickle.dump([schemas, columns, keys, id_metas], open(stresstest_config.config.backup_filename, 'wb'))
+                logger.info('dump data to ' + stresstest_config.config.backup_filename)
+            except pickle.PicklingError:
+                logger.debug('unpicklable objects' + time.asctime())
+
+            keylock.release()
 
 
 class read_vector(threading.Thread):
@@ -151,7 +172,8 @@ class read_vector(threading.Thread):
         try:
             self.rediscli1.vcard(key)
             self.rediscli2.vcard(key)
-            logger.info(key)
+            if stresstest_config.config.enable_log:
+                logger.info(key)
         except Exception as err:
             logger.debug(err)
 
@@ -281,7 +303,7 @@ class stress_test_vector(object):
 
     def initschema(self):
         self.initcolumn()
-
+        global schemas
         for i in range(0, stresstest_config.config.schemarange):
             schema = 's' + str(i)
             try:
@@ -305,6 +327,7 @@ class stress_test_vector(object):
                     logger.debug(err)
 
     def initcolumn(self):
+        global columns
         for i in range(0, stresstest_config.config.columnrange):
             if stresstest_config.config.columnrange != 4:
                 columns.append(('c' + str(i), random.choice([1, 2, 4, 8])))
@@ -312,7 +335,22 @@ class stress_test_vector(object):
                 columns.append(('c' + str(i), [1, 2, 4, 8][i]))
 
     def run(self):
-        self.initschema()
+        #if start with backup load datas from file,
+        #  won't init schemas and columns
+        if stresstest_config.config.start_with_backup:
+            try:
+                global schemas, columns, keys, id_metas
+                [schemas, columns, keys, id_metas] = pickle.load(open(stresstest_config.config.backup_filename, 'rb'))
+                logger.info('load data from ' + stresstest_config.config.backup_filename)
+            except Exception:
+                logger.debug('unpickling error')
+        else:
+            self.initschema()
+
+        #start the backup thread
+        backup_thread = save_data('backup_thread')
+        backup_thread.start()
+
         writers = []
         readers = []
 
