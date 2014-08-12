@@ -243,7 +243,7 @@ class write_vector(threading.Thread):
         key = random.choice(list(keys))
         key = str(key) + '.' + str(random.choice((keys[key])))
         ids = set()
-        for i in range(0, len(id_metas)):
+        for i in range(0, random.choice([1, 2])):
             ids.add(random.choice(list(id_metas)))
         ids = list(ids)
         keylock.release()
