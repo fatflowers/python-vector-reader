@@ -88,11 +88,11 @@ class read_vector(threading.Thread):
         key = str(key) + '.' + str(random.choice((keys[key])))
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
-        if start_id >= stop_id:
-            keylock.release()
-            return
 
         keylock.release()
+
+        if start_id >= stop_id:
+            return
         try:
             filter_ = 0
             self.rediscli1.vrange(key, key, filter_, start_id, stop_id)
@@ -115,13 +115,15 @@ class read_vector(threading.Thread):
         if start_id >= stop_id:
             keylock.release()
             return
+
+        keys_copy = keys
+        keylock.release()
         key = set()
         #select random keys to merge
         for i in range(0, random.choice([45, 100, 200, 500, 2000])):
-            tmpkey = random.choice(list(keys))
-            tmpkey = str(tmpkey) + '.' + str(random.choice((keys[tmpkey])))
+            tmpkey = random.choice(list(keys_copy))
+            tmpkey = str(tmpkey) + '.' + str(random.choice((keys_copy[tmpkey])))
             key.add(tmpkey)
-        keylock.release()
         try:
             filter_ = 0
             arg = list(key)
@@ -266,12 +268,10 @@ class write_vector(threading.Thread):
         key = str(key) + '.' + str(random.choice((keys[key])))
         start_id = random.choice(list(id_metas))
         stop_id = random.choice(list(id_metas))
-        if start_id >= stop_id:
-            keylock.release()
-            return
 
         keylock.release()
-
+        if start_id >= stop_id:
+            return
         try:
             self.rediscli1.vremrange(key, start_id, stop_id)
             self.rediscli2.vremrange(key, start_id, stop_id)
