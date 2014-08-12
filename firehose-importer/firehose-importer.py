@@ -39,9 +39,7 @@ class Importer(threading.Thread):
 
     # parse json object and send redis command
     def parse_send(self, json_obj):
-        # refresh firehose location parameter
-        self.loc = json_obj['id']
-
+        pass
 
     def connect(self):
         # assemble header
@@ -59,7 +57,10 @@ class Importer(threading.Thread):
                 #keep reading
                 for line in resp.iter_lines():
                     if line:
-                        self.parse_send(json.loads(line))
+                        json_obj = json.loads(line)
+                        # refresh firehose location parameter
+                        self.loc = json_obj['id']
+                        self.parse_send(json_obj)
         except:
             pass
 

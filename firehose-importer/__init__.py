@@ -13,5 +13,5 @@ config = {
     'nrediscli': 2,
     #redis servers: (host, port)
     #number of servers should be equal to nrediscli
-    'redis_servers': [('10.77.109.117',6379), ('10.77.109.117', 6666)]
+    'redis_servers': [('10.77.109.117', 6379), ('10.77.109.117', 6666)]
 }
