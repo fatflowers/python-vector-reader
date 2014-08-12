@@ -117,7 +117,7 @@ class read_vector(threading.Thread):
             return
         key = set()
         #select random keys to merge
-        for i in range(0, random.randrange(1, len(keys))):
+        for i in range(0, random.choice([45, 100, 200, 500, 2000])):
             tmpkey = random.choice(list(keys))
             tmpkey = str(tmpkey) + '.' + str(random.choice((keys[tmpkey])))
             key.add(tmpkey)
