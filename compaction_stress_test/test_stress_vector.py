@@ -306,9 +306,9 @@ class stress_test_vector(object):
         else:
             self.initschema()
 
-        #start the backup thread
-        backup_thread = save_data('backup_thread')
-        backup_thread.start()
+        #start the backup thread, there's probably bugs here
+        #backup_thread = save_data('backup_thread')
+        #backup_thread.start()
 
         writers = []
         readers = []

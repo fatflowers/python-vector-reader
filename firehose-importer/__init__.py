@@ -6,12 +6,13 @@ config = {
     'appid': 'tech_useranalyse',
     #firehose filter
     'filter': 'status,*',
-    #firehose loc
+    #firehose loc, None for new connection
     'loc': None,
 
     #redis client number
-    'nrediscli': 2,
+    'nrediscli': 1,
     #redis servers: (host, port)
-    #number of servers should be equal to nrediscli
-    'redis_servers': [('10.77.109.117', 6379), ('10.77.109.117', 6666)]
+    'redis_servers': [('10.77.109.117', 6667)],
+    #redis schema name
+    'schema_name': ['vsl']
 }
