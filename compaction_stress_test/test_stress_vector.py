@@ -77,19 +77,10 @@ class read_vector(threading.Thread):
         self.__doc__ = 'for vrange vmerge vcount vcard'
 
     def vrange(self):
-        keylock.acquire()
-
-        #avoid nothing to remove
-        if len(keys) == 0 or len(id_metas) == 0:
-            keylock.release()
-            return
-
-        key = random.choice(list(keys))
+        key = get_key()
         key = str(key) + '.' + str(random.choice((keys[key])))
-        start_id = random.choice(list(id_metas))
-        stop_id = random.choice(list(id_metas))
-
-        keylock.release()
+        start_id = random.choice(list(get_id_metaid()))
+        stop_id = random.choice(list(get_id_metaid()))
 
         if start_id >= stop_id:
             return
@@ -103,27 +94,15 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def vmerge(self):
-        keylock.acquire()
-
-        #avoid nothing to remove
-        if len(keys) == 0 or len(id_metas) == 0:
-            keylock.release()
-            return
-
-        start_id = random.choice(list(id_metas))
-        stop_id = random.choice(list(id_metas))
+        start_id = random.choice(list(get_id_metaid()))
+        stop_id = random.choice(list(get_id_metaid()))
         if start_id >= stop_id:
-            keylock.release()
             return
 
-        keys_copy = keys
-        keylock.release()
         key = set()
         #select random keys to merge
         for i in range(0, random.choice([45, 100, 200, 500, 2000])):
-            tmpkey = random.choice(list(keys_copy))
-            tmpkey = str(tmpkey) + '.' + str(random.choice((keys_copy[tmpkey])))
-            key.add(tmpkey)
+            key.add(str(get_key()) + '.' + get_schema())
         try:
             filter_ = 0
             arg = list(key)
@@ -136,22 +115,12 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def vcount(self):
-        keylock.acquire()
-
-        #avoid nothing to remove
-        if len(keys) == 0 or len(id_metas) == 0:
-            keylock.release()
-            return
-
-        start_id = random.choice(list(id_metas))
-        stop_id = random.choice(list(id_metas))
+        start_id = random.choice(list(get_id_metaid()))
+        stop_id = random.choice(list(get_id_metaid()))
         if start_id >= stop_id:
-            keylock.release()
             return
-        key = random.choice(list(keys))
-        key = str(key) + '.' + str(random.choice((keys[key])))
+        key = str(get_key()) + '.' + get_schema()
 
-        keylock.release()
         try:
             self.rediscli1.vcount(key, start_id, stop_id)
             self.rediscli2.vcount(key, start_id, stop_id)
@@ -161,17 +130,7 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def vcard(self):
-        keylock.acquire()
-
-        #avoid nothing to remove
-        if len(keys) == 0 or len(id_metas) == 0:
-            keylock.release()
-            return
-
-        key = random.choice(list(keys))
-        key = str(key) + '.' + str(random.choice((keys[key])))
-
-        keylock.release()
+        key = str(get_key()) + '.' + get_schema()
         try:
             self.rediscli1.vcard(key)
             self.rediscli2.vcard(key)
