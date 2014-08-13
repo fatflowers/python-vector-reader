@@ -77,10 +77,9 @@ class read_vector(threading.Thread):
         self.__doc__ = 'for vrange vmerge vcount vcard'
 
     def vrange(self):
-        key = get_key()
-        key = str(key) + '.' + str(random.choice((keys[key])))
-        start_id = random.choice(list(get_id_metaid()))
-        stop_id = random.choice(list(get_id_metaid()))
+        key = str(get_key()) + '.' + get_schema()
+        start_id = get_id_metaid()
+        stop_id = get_id_metaid()
 
         if start_id >= stop_id:
             return
@@ -94,8 +93,8 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def vmerge(self):
-        start_id = random.choice(list(get_id_metaid()))
-        stop_id = random.choice(list(get_id_metaid()))
+        start_id = get_id_metaid()
+        stop_id = get_id_metaid()
         if start_id >= stop_id:
             return
 
@@ -115,8 +114,8 @@ class read_vector(threading.Thread):
             logger.debug(err)
 
     def vcount(self):
-        start_id = random.choice(list(get_id_metaid()))
-        stop_id = random.choice(list(get_id_metaid()))
+        start_id = get_id_metaid()
+        stop_id = get_id_metaid()
         if start_id >= stop_id:
             return
         key = str(get_key()) + '.' + get_schema()
