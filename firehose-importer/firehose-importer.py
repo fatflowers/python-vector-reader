@@ -54,18 +54,21 @@ class Importer(threading.Thread):
         # execute redis commands for weibo
         if json_obj['text']['type'] == 'status':
             for cli in self.rediscli:
-                if json_obj['text']['event'] == 'add' or json_obj['text']['event'] == 'update':
-                    cli.vadd(*[
-                        str(json_obj['text']['status']['user']['id']) + '.' + config['schema_name'][0],
-                        json_obj['text']['status']['mid'],
-                        value
-                    ])
+                try:
+                    if json_obj['text']['event'] == 'add' or json_obj['text']['event'] == 'update':
+                        cli.vadd(*[
+                            str(json_obj['text']['status']['user']['id']) + '.' + config['schema_name'][0],
+                            json_obj['text']['status']['mid'],
+                            value
+                        ])
 
-                elif json_obj['text']['event'] == 'delete':
-                    cli.vrem(*[
-                        str(json_obj['text']['status']['user']['id']) + '.' + config['schema_name'][0],
-                        json_obj['text']['status']['mid']
-                    ])
+                    elif json_obj['text']['event'] == 'delete':
+                        cli.vrem(*[
+                            str(json_obj['text']['status']['user']['id']) + '.' + config['schema_name'][0],
+                            json_obj['text']['status']['mid']
+                        ])
+                except Exception as err:
+                    self.logger.info("Vector commands failed: " + err.message)
 
     # noinspection PyBroadException
     def connect(self):
