@@ -105,10 +105,13 @@ class Importer(threading.Thread):
                 for line in resp.iter_lines():
                     if line:
                         json_obj = json.loads(line)
-                        if self.in_white_list(json_obj['text']['status']['user']['id']):
-                            # refresh firehose location parameter
-                            self.loc = json_obj['id']
-                            self.parse_send(json_obj)
+                        try:
+                            if self.in_white_list(json_obj['text']['status']['user']['id']):
+                                # refresh firehose location parameter
+                                self.loc = json_obj['id']
+                                self.parse_send(json_obj)
+                        except Exception as err:
+                            self.logger.info("error getting uid")
         except:
             self.logger.info("error!")
 
