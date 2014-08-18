@@ -29,7 +29,8 @@ class Importer(threading.Thread):
         self.logger = logging.getLogger('import_log')
         self.logger.setLevel(logging.INFO)
 
-
+        #white list
+        self.white_list = config['white_list']
 
         # redis client
         self.rediscli = [redis.Redis(host=config['redis_servers'][i][0], port=config['redis_servers'][i][1], db=0) for i
@@ -41,6 +42,15 @@ class Importer(threading.Thread):
 
     def __del__(self):
         pass
+
+    # whether current uid in white list
+    # return True if currend uid in white list or white list is not enabled
+    def in_white_list(self, uid):
+        if not config['white_list_enable']:
+            return True
+        elif id in self.white_list:
+            return True
+        return False
 
     # parse json object and send redis command
     def parse_send(self, json_obj):
@@ -95,9 +105,10 @@ class Importer(threading.Thread):
                 for line in resp.iter_lines():
                     if line:
                         json_obj = json.loads(line)
-                        # refresh firehose location parameter
-                        self.loc = json_obj['id']
-                        self.parse_send(json_obj)
+                        if self.in_white_list(json_obj['text']['status']['user']['id']):
+                            # refresh firehose location parameter
+                            self.loc = json_obj['id']
+                            self.parse_send(json_obj)
         except:
             self.logger.info("error!")
 
